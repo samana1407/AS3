@@ -1,4 +1,4 @@
-package
+package AS3
 {
 	import flash.display.DisplayObject;
 	import flash.display.Shape;

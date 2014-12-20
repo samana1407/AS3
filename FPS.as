@@ -1,4 +1,4 @@
-﻿package
+﻿package AS3
 {
 	import flash.display.Sprite;
 	import flash.events.Event;

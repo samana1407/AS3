@@ -1,4 +1,4 @@
-package LightEffect 
+package AS3.LightEffect 
 {
 	import flash.display.Bitmap;
 	import flash.display.BitmapData;

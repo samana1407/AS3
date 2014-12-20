@@ -1,4 +1,4 @@
-package LightEffect 
+package AS3.LightEffect 
 {
 	import flash.display.DisplayObject;
 	import flash.geom.Point;

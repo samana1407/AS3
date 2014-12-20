@@ -1,4 +1,4 @@
-package soundManager
+package AS3.soundManager
 {
 	import com.greensock.TweenMax;
 	import flash.automation.KeyboardAutomationAction;
@@ -6,7 +6,7 @@ package soundManager
 	import flash.events.EventDispatcher;
 	import flash.geom.Point;
 	import flash.utils.Dictionary;
-	import soundManager.SoundObject;
+	import AS3.soundManager.SoundObject;
 	
 	/**
 	 * ...

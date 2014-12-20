@@ -1,4 +1,4 @@
-package soundManager
+package AS3.soundManager
 {
 	import com.greensock.TweenMax;
 	import flash.display.DisplayObject;

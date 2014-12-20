@@ -1,4 +1,4 @@
-package  myClasses
+package  AS3
 {
 	import flash.errors.IllegalOperationError;
 	import flash.utils.getDefinitionByName;
