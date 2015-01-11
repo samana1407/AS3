@@ -63,13 +63,25 @@ package  AS3
 		 * @param	toX
 		 * @param	toY
 		 * @param	inRadians переводит угол в радианы или градусы
+		 * @param 	inAbsCircle результат в положительном числе от 0-360 в градусах, либо от 0 - Math.Pi*2 в радианах
 		 * @return
 		 */
-		static public function angTo(fromX:Number, fromY:Number, toX:Number, toY:Number, inRadians:Boolean=true):Number 
+		static public function angTo(fromX:Number, fromY:Number, toX:Number, toY:Number, inRadians:Boolean=true, inAbsCircle:Boolean=true):Number 
 		{
-			if (inRadians) return Math.atan2(toY - fromY, toX - fromX);
+			var ang:Number;
 			
-			return Math.atan2(toY - fromY, toX - fromX) * 180 / 3.141592653589793;// Math.PI
+			if (inRadians)
+			{
+				ang= Math.atan2(toY - fromY, toX - fromX);
+				if (inAbsCircle && ang < 0) ang = 6.283185307179586 - (ang * -1);//to abs
+			}
+			else
+			{
+				ang = Math.atan2(toY - fromY, toX - fromX) * 180 / 3.141592653589793;// Math.PI
+				if(inAbsCircle && ang < 0) ang = 360 - (ang * -1);//to abs
+			}
+			
+			return ang
 		}
 		
 		/**
@@ -106,7 +118,7 @@ package  AS3
 				diff = ang2 - ang1;
 				 
 				if (diff > 180) diff -= 360;
-				else if (diff < -180) diff += 360;
+				if (diff < -180) diff += 360;
 			}
 			
 			return diff;
