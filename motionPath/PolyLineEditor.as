@@ -1,5 +1,6 @@
 package  AS3.motionPath
 {
+	import AS3.SMath;
 	import flash.display.Loader;
 	import flash.display.Shape;
 	import flash.display.Sprite;
@@ -19,6 +20,7 @@ package  AS3.motionPath
 	 * Как использовать:
 		 * создать экземпляр данного класса и добавить на сцену.
 		 * инструкция по использованию будет находится в левом верхнем углу.
+		 * при копировании точек, копируются текущие, смягчённые точки.
 	 */
 	public class PolyLineEditor extends Sprite 
 	{
@@ -182,8 +184,20 @@ package  AS3.motionPath
 				}
 			}
 			
+			//update path length in pixel
+			var lenInPix:Number = 0;
+			for (var j:int = 0; j < _smoothLinePoints.length-1; j++) 
+			{
+				var p1:Point = _smoothLinePoints[j];
+				var p2:Point = _smoothLinePoints[j+1];
+				lenInPix += SMath.dist(p1.x, p1.y, p2.x, p2.y);
+			}
+			
+			_info.pathLength = Number(lenInPix.toFixed(2));
 			_info.numPoints = _smoothLinePoints.length;
 		}
+		
+		
 		
 		private function convertBaseVertexToPoints():Vector.<Point> 
 		{
@@ -193,13 +207,16 @@ package  AS3.motionPath
 				_smoothLinePoints[i] = new Point(_baseVertexes[i].x, _baseVertexes[i].y);
 			}
 			
+			//если путь нужно замкнуть, то создать в конце ещё одну точку, такую же, как и первую
 			if (_closePath && _smoothLinePoints.length>1) 
 			{
-				_smoothLinePoints.push(new Point(_smoothLinePoints[0].x, _smoothLinePoints[0].y));
+				_smoothLinePoints.push(new Point(_smoothLinePoints[0].x,_smoothLinePoints[0].y));
 			}
 			
 			return _smoothLinePoints;
 		}
+		
+		
 		
 		private function drawSmoothLine():void 
 		{
@@ -226,7 +243,7 @@ package  AS3.motionPath
 			
 		}
 		
-		private function smoothingLine(points:Vector.<Point>, closePath:Boolean=false):Vector.<Point> 
+		internal static function smoothingLine(points:Vector.<Point>, closePath:Boolean=false):Vector.<Point> 
 		{
 			//создаю базовый массив точек
 			var originClone:Vector.<Point> = new Vector.<Point>();
@@ -234,10 +251,7 @@ package  AS3.motionPath
 			{
 				originClone[k] = points[k].clone();
 			}
-			if (closePath) //смещаю последнюю и первую точку в одно место (на всякий случай)
-			{
-				originClone[originClone.length - 1] = originClone[0].clone();
-			}
+			
 			
 			// нахожу промежуточные точки
 			var middlePoints:Vector.<Point> = new Vector.<Point>();
@@ -279,7 +293,7 @@ package  AS3.motionPath
 				orinigP.x = offsetOriginP.x;
 				orinigP.y = offsetOriginP.y;
 				
-				originClone[originClone.length - 1] = originClone[0];
+				originClone[originClone.length - 1] = originClone[0].clone();
 			}
 			
 			//объединяю базовые (уже смягчённые) точки и промежуточные
@@ -360,8 +374,8 @@ package  AS3.motionPath
 			
 			for (var i:int = 0; i < _smoothLinePoints.length; i++) 
 			{
-				fixedX = Number(_smoothLinePoints[i].x.toFixed(2));
-				fixedY = Number(_smoothLinePoints[i].y.toFixed(2));
+				fixedX = Number(_smoothLinePoints[i].x.toFixed(3));
+				fixedY = Number(_smoothLinePoints[i].y.toFixed(3));
 				s += "new Point(" + fixedX + "," + fixedY + "),";
 			}
 			
@@ -511,6 +525,7 @@ class Info extends Sprite
 	private var _numPoints:int;
 	private var _closePath:Boolean;
 	private var _smoothPass:int;
+	private var _pathLength:Number=0;
 	
 	private var _tf:TextField;
 	private var _tFormat:TextFormat;
@@ -550,6 +565,7 @@ class Info extends Sprite
 		s += "      *** <b><u>info</u></b> ***";
 		s += "\n<b>smooth pass</b>: " + _smoothPass;
 		s += "\n<b>num points</b>: " + _numPoints;
+		s += "\n<b>path length pix</b>: " + _pathLength;
 		s += "\n<b>close path</b>: " + _closePath;
 		
 		_tf.htmlText = s;
@@ -570,6 +586,12 @@ class Info extends Sprite
 	public function set smoothPass(value:int):void 
 	{
 		_smoothPass = value;
+		updateText();
+	}
+	
+	public function set pathLength(value:Number):void 
+	{
+		_pathLength = value;
 		updateText();
 	}
 }

@@ -26,6 +26,11 @@ package AS3.motionPath
 		public var cycleValue:Boolean;
 		
 		/**
+		 * Усерединение поворота между предыдущей и следующей вершиной, если локатор находится между ними.
+		 */
+		public var rotateInterpolation:Boolean;
+		
+		/**
 		 * Шейп, для визуального представления локатора.
 		 */
 		public var displayShape:Shape;
@@ -43,8 +48,9 @@ package AS3.motionPath
 		 * Создать локатор на пути.
 		 * @param	path путь для локатора
 		 * @param	cycle цикличность передвижения
+		 * @param 	rotateInterpolation усерединять поворот между предыдущей и следующей вершиной, если локатор находится между ними
 		 */
-		public function Locator(path:MotionPath, cycle:Boolean = false)
+		public function Locator(path:MotionPath, cycle:Boolean = false, rotateInterpolation:Boolean = false )
 		{
 			_x = 0;
 			_y = 0;
@@ -56,6 +62,7 @@ package AS3.motionPath
 			cycleValue = cycle;
 			orientToPath = true;
 			displayShape = new Shape();
+			this.rotateInterpolation = rotateInterpolation;
 			
 			updateTransform(_value);
 			drawLocator();
@@ -68,12 +75,18 @@ package AS3.motionPath
 		 *
 		 * @param	targetX
 		 * @param	targetY
+		 * @param	cycleWhenDrag блокировать цикличное движение во время перетаскивания, если оно было включено.
+		 * 
 		 */
-		public function dragTo(targetX:Number, targetY:Number):void
+		public function dragTo(targetX:Number, targetY:Number, cycleWhenDrag:Boolean=false):void
 		{
 			//при перетаскивании блокируем цикличное передвиженое по пути, если оно включено.
-			var cycleBeenTrue:Boolean = cycleValue;
-			cycleValue = false;
+			var cycleBeenTrue:Boolean;
+			if (cycleWhenDrag==false && cycleValue==true) 
+			{
+				cycleBeenTrue = true;
+				cycleValue = false;
+			}
 			
 			var v:Vertex = _path.getValue(_value); //текущие данные на пути
 			var angToTarget:Number = SMath.angTo(v.x, v.y, targetX, targetY, false); //угол к цели
@@ -130,8 +143,8 @@ package AS3.motionPath
 				break;
 			}
 			
-			if (cycleBeenTrue)
-				cycleValue = true;
+			//включить цикличное движение, если оно было выключено на время перетаскивания
+			if (cycleBeenTrue) cycleValue = true;
 		}
 		
 		
@@ -140,13 +153,12 @@ package AS3.motionPath
 		 */
 		private function updateTransform(val:Number):void
 		{
-			var v:Vertex = _path.getValue(val, cycleValue);
+			var v:Vertex = _path.getValue(val, cycleValue, rotateInterpolation);
 			_x = v.x;
 			_y = v.y;
 			_uv = v.uv;
 			_value = v.value;
-			if (orientToPath)
-				_rotation = v.angNext;
+			if (orientToPath) _rotation = v.angNext;
 			
 			//обновить визуальный шейп
 			displayShape.x = _x;
@@ -232,7 +244,7 @@ package AS3.motionPath
 		
 		
 		//==============================================
-		//					GETTERS x,y,rotation
+		//					GETTERS other
 		//==============================================
 		public function get x():Number
 		{
@@ -247,6 +259,18 @@ package AS3.motionPath
 		public function get rotation():Number
 		{
 			return _rotation;
+		}
+		
+		
+		public function get path():MotionPath 
+		{
+			return _path;
+		}
+		
+		public function set path(value:MotionPath):void 
+		{
+			_path = value;
+			updateTransform(_value);
 		}
 	
 	}

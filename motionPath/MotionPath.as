@@ -2,7 +2,6 @@ package AS3.motionPath {
 	import AS3.SMath;
 	import flash.display.Graphics;
 	import flash.display.Shape;
-	import flash.display.Sprite;
 	import flash.geom.Point;
 	
 	/**
@@ -11,9 +10,9 @@ package AS3.motionPath {
 	 * Своего рода motionPath.
 	 * Как использовать:
 		 * Передать массив точек для составление пути через метод initPath.
-		 * ВАЖНО!!!! Точки должы быть на одинаковом расстоянии друг от друга
 		 * Чтобы визуализировать путь, нужно добавить в дисплейЛист displayShape и вызвать метод showPathData, но в этом нет необходимости.
 		 * Получать положение и поворот точки на пути с помощью getValue, где 0 - начало, 1-конец пути.
+		 * Так же удобно использовать в связке с Locator-ом, который привязывается к пути и имеет удобные методы для управления.
 	 */
 	public class MotionPath
 	{
@@ -41,9 +40,11 @@ package AS3.motionPath {
 		 * Данные о точке на пути. Возвращает вершину со всеми парраметрами.
 		 * @param	value 0 - начало пути, 1 - конец пути
 		 * @param 	cycle если value выходит из диапазона 0-1, то создаётся цикличность: из-конца в начало и наоборот.
+		 * @param	rotateInterpolation усерединять angNext(поворот) вершины, если она находится между базовых вершин.
+		 * Например если путь плавный, то лучше установить true, а если путь прямой и угловой, то - false.
 		 * @return
 		 */
-		public function getValue(value:Number, cycle:Boolean=false):Vertex 
+		public function getValue(value:Number, cycle:Boolean=false, rotateInterpolation:Boolean=false):Vertex 
 		{
 			if (!cycle) 
 			{
@@ -56,23 +57,53 @@ package AS3.motionPath {
 				if (value<0) value = 1-Math.abs(value % 1);
 			}
 			
-			var baseValue:Number = value * (_numVertexes-1);	//какая вершина соответствует данному value
-			var offsetBaseV:Number = baseValue % 1;				//смещение от базовой вершины, когда value между вершинами
-			var baseV:Vertex = _vertexes[int(baseValue)];		//ссылка на эту вершину
-			
 			var v:Vertex = new Vertex();
-			v.copyFrom(baseV);
 			
-			//если есть смещение, а оно практически всегда есть, то добавляем к вершине это смещение
-			if (offsetBaseV != 0) 
+			if (value==0) 
 			{
-				var nextV:Vertex = _vertexes[int(baseValue) + 1];
-				v.x += (nextV.x - v.x) * offsetBaseV;
-				v.y += (nextV.y - v.y) * offsetBaseV;
-				v.angNext += SMath.diffAngles(v.angNext, nextV.angNext, false) * offsetBaseV;
-				v.value = value;
-				v.uv = _length * value;
+				v.copyFrom(_vertexes[0]);
+				return v;
 			}
+			if (value==1) 
+			{
+				v.copyFrom(_vertexes[_vertexes.length - 1]);
+				return v;
+			}
+			
+			
+			var baseV:Vertex;
+			//пробегаюсь по вершинам с предпоследней до первой и нахожу ту, у которой value меньше искомого value.
+			//другими словами нахожу между какими вершинами находится искомое value
+			for (var i:int = _numVertexes-2; i >= 0; i--) 
+			{
+				baseV = _vertexes[i];
+				if (baseV.value == value)
+				{
+					v.copyFrom(baseV);
+					return v;
+				}
+				
+				if (baseV.value < value) 
+				{
+					v.copyFrom(baseV);
+					break;
+				}
+			}
+			
+			var nextV:Vertex = _vertexes[i + 1];
+			
+			var valueOffset:Number = (value - v.value) / (nextV.value-v.value);
+			
+			v.x += (nextV.x - v.x) * valueOffset;
+			v.y += (nextV.y - v.y) * valueOffset;
+			
+			if(rotateInterpolation) v.angNext += SMath.diffAngles(v.angNext, nextV.angNext, false) * valueOffset;
+			
+			v.uv += (nextV.uv - v.uv) * valueOffset;
+			v.value = value;
+			
+			baseV = null;
+			nextV = null;
 			
 			return v;
 		}
@@ -91,15 +122,26 @@ package AS3.motionPath {
 		
 		/**
 		 * Создать путь из точек.
-		 * Точки должны быть на одинаковом расстоянии друг от друга, иначе всё пропало!
 		 * @param	points Вектор  с точками
+		 * @param	smoothPass 	Количество смягчений для пути
+		 * @param	closePath 	Если путь является замкнутым по задумке, то для правильного смягчения если (smoothPass > 0),
+		 * 	нужно установить closePath=true 
 		 */
-		public function initPath(points:Vector.<Point>):void 
+		public function initPath(points:Vector.<Point>, smoothPass:int=0, closePath:Boolean=false):void 
 		{
 			if (points.length == 1)
 			{
 				trace("[Path][initPath] путь не может состоять из одной точки");
 				return;
+			}
+			
+			//если нужно смягчить путь
+			if (smoothPass) 
+			{
+				for (var j:int = 0; j < smoothPass; j++) 
+				{
+					points = PolyLineEditor.smoothingLine(points, closePath);
+				}
 			}
 			
 			//обнулить данные
@@ -111,56 +153,71 @@ package AS3.motionPath {
 			
 			displayShape.graphics.clear();
 			
-			//пробежаться по точкам и постоить путь
+			//создать по каждой точке vertex и найти какое она занимает положение к пикселях на пути,
+			//чтобы потом можно было найти value
 			for (var i:int = 0; i < points.length; i++) 
 			{
 				var currentP:Point = points[i];
-				var prevP:Point;
-				var nextP:Point;
-				
-				var prevV:Vertex;
-				
 				var v:Vertex = new Vertex();
 				v.x = currentP.x;
 				v.y = currentP.y;
-				v.value = i / (points.length - 1);
-				v.uv = Number(_length.toFixed(1));
+				
+				//угол к следующей точке и нормаль
+				if (i < points.length-1) // до предпоследней точки
+				{
+					v.angNext = SMath.angTo(v.x, v.y, points[i + 1].x, points[i + 1].y, false);
+					v.normal = v.angNext - 90;
+				}
+				
+				//угол к предыдущей точке и позциция на пути (uv)
+				if (i>0) // начинаем со второй точки 
+				{
+					v.angPrev = SMath.angTo(v.x, v.y, points[i - 1].x, points[i - 1].y, false);
+					
+					_length += SMath.dist(v.x, v.y, points[i - 1].x, points[i - 1].y);
+					v.uv = _length;
+				}
 				
 				_vertexes[i] = v;
-				
-				//угол к следующей точке и нормаль для текущей.
-				//если эта последняя точка на пути, то её нормаль и angNext такие же как у предыдущей точки.
-				//так же расстояние до следующей точки, для определения длинны всего пути в пикселях.
-				if (i < points.length-1) 
-				{
-					nextP = points[i + 1];
-					v.angNext = SMath.angTo(currentP.x, currentP.y, nextP.x, nextP.y, false);
-					v.normal = v.angNext - 90;
-					
-					_length += SMath.dist(currentP.x, currentP.y, nextP.x, nextP.y);
-				}
-				else if (i==points.length-1) 
-				{
-					prevV = _vertexes[i - 1];
-					v.angNext = prevV.angNext;
-					v.normal = prevV.normal;
-				}
-				
-				
-				//угол к предыдущей точке и
-				//если это первая точка на пути, то её prevAng такой же как у второй точки.
-				if (i>0) 
-				{
-					prevP = points[i - 1];
-					v.angPrev = SMath.angTo(currentP.x, currentP.y, prevP.x, prevP.y, false);
-					if (i==1) 
-					{
-						prevV = _vertexes[i - 1];
-						prevV.angPrev = v.angPrev;
-					}
-				}
 			}
 			
+			
+			
+			var currentV:Vertex;
+			var otherV:Vertex;
+			
+			//-------------------------
+			// вершины созданы, но для первой вершины надо определить prevAng,
+			// он будет такой же как у второй вершины, но если путь цельный,
+			// то он будет такой же, как у последней вершины
+			currentV = _vertexes[0];
+			otherV = _vertexes[_vertexes.length - 1];
+			
+			if (closePath) currentV.angPrev = otherV.angPrev;
+			else currentV.angPrev = _vertexes[1].angPrev;
+			
+			
+			//-------------------------
+			// и для последней вершины надо определить nextAng и normal
+			// он будет такой же как у предпоследней вершины,
+			// но если путь цельный, тогда nextAng будет как у первой вершины
+			currentV = _vertexes[_vertexes.length - 1];
+			otherV = _vertexes[0];
+			
+			if (closePath) 	currentV.angNext = otherV.angNext;
+			else currentV.angNext = _vertexes[_vertexes.length - 2].angNext;
+			
+			currentV.normal = currentV.angNext - 90;
+			
+			
+			//-------------------------
+			// теперь надо вичислить value для вершин, так как общая длина пути известна
+			for (var k:int = 0; k < _vertexes.length; k++) 
+			{
+				_vertexes[k].value = _vertexes[k].uv / _length;
+			}
+			
+			//фикисрую длину пути и кол-во вершин
 			_length = Number(_length.toFixed(2));
 			_numVertexes = _vertexes.length;
 			_vertexes.fixed = true;
