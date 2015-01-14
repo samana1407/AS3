@@ -232,7 +232,7 @@ package AS3.motionPath {
 		 * @param	nextAng угол к след.вершине - зелёная
 		 * @param	prevAng угол к пред.вершине - красная
 		 */
-		public function showPathData(pathLine:int=1, vertexes:int=0, normals:int=0, nextAng:int=0, prevAng:int=0):void 
+		public function redrawPathData(pathLine:int=1, vertexes:int=0, normals:int=0, nextAng:int=0, prevAng:int=0):void 
 		{
 			var normalLen:int = 10;
 			var vertexSize:int = 2;
