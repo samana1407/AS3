@@ -14,6 +14,7 @@ package AS3.motionPath {
 		public var normal:Number;		//угол нормали (в градусах)
 		public var value:Number;		//позиция на пути 0-1 конец пути
 		public var uv:Number;			//позиция на пути в пикселях 0 - n n=длина пути
+		public var id:int;				//номер вершины на пути 0 - n
 		
 		public function Vertex() 
 		{
@@ -24,6 +25,7 @@ package AS3.motionPath {
 			normal = 0;
 			value = 0;
 			uv = 0;
+			id = 0;
 		}
 		
 		public function copyFrom(v:Vertex):Vertex 
@@ -35,6 +37,7 @@ package AS3.motionPath {
 			normal = v.normal;
 			value = v.value;
 			uv = v.uv;
+			id = 0;
 			return this
 		}
 		

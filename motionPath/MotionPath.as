@@ -23,7 +23,17 @@ package AS3.motionPath {
 		
 		private var _vertexes:Vector.<Vertex>;	//массив с вершинами
 		private var _length:Number;				//длина пути в пикселях
-		private var _numVertexes:int;			//кло-во вершин, составляющих путь
+		private var _numVertexes:int;			//кол-во вершин, составляющих путь
+		
+		
+		// проба оптимизации поиска вершин. Оправдывает себя, когда путь очень гладкий и содержит очень много вершин.
+		// При getValue идёт поиск близжайщей вершины к искомому value и чтобы не перебирать все вершины,
+		// общий массив с вершинами разбивается на указанное кол-во массивов, в каждом из которых будут
+		// занесены те вершины, ребро которой (ребро: value - nextVertex.value) попадает в заданный диапазон value (напр. от 0.3 до 0.4)
+		
+		private var _numMiniArrays:int;			//на сколько частей разбить общий массив с вершинами (например 5)
+		private var _valueMiniArray:Number;		//какой диапазон value для каждого миниМассива (=  1 / _numMiniArrays = 0.2)
+		private var _allMiniVectors:Array;		//массив во всеми миниМассивами
 		
 		
 		public function MotionPath() 
@@ -33,6 +43,11 @@ package AS3.motionPath {
 			_numVertexes = 0;
 			
 			displayShape = new Shape();
+			
+			//проба отпимизации поиска вершин
+			_numMiniArrays = 10;
+			_valueMiniArray = 1 / _numMiniArrays;
+			_allMiniVectors = [];
 			
 		}
 		
@@ -45,6 +60,78 @@ package AS3.motionPath {
 		 * @return
 		 */
 		public function getValue(value:Number, cycle:Boolean=false, rotateInterpolation:Boolean=false):Vertex 
+		{
+			if (!cycle) 
+			{
+				if (value > 1) value = 1;
+				if (value < 0) value = 0;
+			}
+			else
+			{
+				if (value>0) value = value % 1;
+				if (value<0) value = 1-Math.abs(value % 1);
+			}
+			
+			var v:Vertex = new Vertex();
+			
+			if (value==0) 
+			{
+				v.copyFrom(_vertexes[0]);
+				return v;
+			}
+			if (value==1) 
+			{
+				v.copyFrom(_vertexes[_vertexes.length - 1]);
+				return v;
+			}
+			
+			//-------------------------
+			//нахожу тот мини вектор, который содержит вершины у которых рёбро входят в данныи диапозон вектора
+			var miniVector:Vector.<Vertex> = _allMiniVectors[int(value / _valueMiniArray)];
+			var len:int=miniVector.length-1
+			
+			
+			var baseV:Vertex;
+			//пробегаюсь по вершинам до первой и нахожу ту, у которой value меньше искомого value.
+			//другими словами нахожу между какими вершинами находится искомое value
+			for (var i:int = len; i >= 0; i--) 
+			{
+				baseV = miniVector[i];
+				if (baseV.value == value)
+				{
+					v.copyFrom(baseV);
+					return v;
+				}
+				
+				if (baseV.value < value) 
+				{
+					v.copyFrom(baseV);
+					break;
+				}
+			}
+			
+			var nextV:Vertex = _vertexes[baseV.id + 1];
+			
+			var valueOffset:Number = (value - v.value) / (nextV.value-v.value);
+			
+			v.x += (nextV.x - v.x) * valueOffset;
+			v.y += (nextV.y - v.y) * valueOffset;
+			
+			if(rotateInterpolation) v.angNext += SMath.diffAngles(v.angNext, nextV.angNext, false) * valueOffset;
+			
+			v.uv += (nextV.uv - v.uv) * valueOffset;
+			v.value = value;
+			
+			baseV = null;
+			nextV = null;
+			miniVector = null;
+			
+			return v;
+		}
+		
+		// Предыдущий вариант метода. Так и не понял, какой из них быстрее...
+		
+		/*public function getValue(value:Number, cycle:Boolean=false, rotateInterpolation:Boolean=false):Vertex 
 		{
 			if (!cycle) 
 			{
@@ -107,6 +194,7 @@ package AS3.motionPath {
 			
 			return v;
 		}
+		*/
 		
 		/**
 		 * Данные о точке на пути, через длину пути.
@@ -149,6 +237,7 @@ package AS3.motionPath {
 			
 			_vertexes.fixed = false;
 			_vertexes.length = 0;
+			_allMiniVectors.length = 0;
 			_numVertexes = 0;
 			
 			displayShape.graphics.clear();
@@ -211,16 +300,55 @@ package AS3.motionPath {
 			
 			
 			//-------------------------
-			// теперь надо вичислить value для вершин, так как общая длина пути известна
+			// теперь надо вичислить value для вершин, так как общая длина пути известна,
+			// и назначить id для вершины.
 			for (var k:int = 0; k < _vertexes.length; k++) 
 			{
 				_vertexes[k].value = _vertexes[k].uv / _length;
+				_vertexes[k].id = k;
 			}
 			
 			//фикисрую длину пути и кол-во вершин
 			_length = Number(_length.toFixed(2));
 			_numVertexes = _vertexes.length;
 			_vertexes.fixed = true;
+			
+			
+			
+			//-------------------------------------------  
+			//проба оттимизации поиска вершин
+			
+			//создать нужное кол-во мини-массивов
+			var minValue:Number = 0;
+			var maxValue:Number = _valueMiniArray;
+			
+			for (var l:int = 0; l < _numMiniArrays; l++) 
+			{
+				var miniVector:Vector.<Vertex>=new Vector.<Vertex>();
+				
+				//пробежать по всем вершинам и занести все в только что созданный массив,
+				//если ребро вершины попадает в диапазон minValue maxValue
+				for (var m:int = 0; m < _vertexes.length; m++) 
+				{
+					v = _vertexes[m];
+					//нахожу value у следующей вершины, но если она последняя, то = 1
+					var nextValue:Number = (m != _vertexes.length - 1) ? _vertexes[m + 1].value : 1;
+					//если ребро вершины входт в диапазон для текущего минимального и максимального значения,
+					//то заношу вершину в мими-массив.
+					if (SMath.rangeNumbers(v.value, nextValue, minValue, maxValue))
+					{
+						miniVector.push(v);
+					}
+				}
+				
+				miniVector.fixed = true;
+				
+				_allMiniVectors[l] = miniVector;
+				
+				minValue = maxValue;
+				maxValue+= _valueMiniArray;
+			}
+			
 		}
 		
 		/**
