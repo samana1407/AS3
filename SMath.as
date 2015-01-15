@@ -138,6 +138,22 @@ package  AS3
 		}
 		
 		
+		/**
+		 * Пересекаются ли отрезки min-max и minRange-maxRange.
+		 * Например отрезок (0.2,0.5) пересекается с отрезками (0.45,0.7), (-60, 20), (0.5 0.51),
+		 * но не пересекается с (0.1,0.199), (0.51, 3.5).
+		 * @param	min Минимальное число первого отрезка
+		 * @param	max Максимальное число первого отрезка
+		 * @param	minRange Минимальное число второго отрезка
+		 * @param	maxRange Максимально число второго отрезка
+		 * @return
+		 */
+		static public function rangeNumbers(min:Number, max:Number, minRange:Number, maxRange:Number):Boolean 
+		{
+			return (min<=maxRange && max>=minRange);
+		}
+		
+		
 	}
 
 }
