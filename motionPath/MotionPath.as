@@ -30,9 +30,10 @@ package AS3.motionPath {
 		// При getValue идёт поиск близжайщей вершины к искомому value и чтобы не перебирать все вершины,
 		// общий массив с вершинами разбивается на указанное кол-во массивов, в каждом из которых будут
 		// занесены те вершины, ребро которой (ребро: value - nextVertex.value) попадает в заданный диапазон value (напр. от 0.3 до 0.4)
+		// В конечном счёте поиск вершины в миниМассиве происходит быстрее, чем в общем, цельном массиве.
 		
-		private var _numMiniArrays:int;			//на сколько частей разбить общий массив с вершинами (например 5)
-		private var _valueMiniArray:Number;		//какой диапазон value для каждого миниМассива (=  1 / _numMiniArrays = 0.2)
+		private var _numMiniArrays:int;			//на сколько частей разбить общий массив с вершинами (например 10)
+		private var _valueMiniArray:Number;		//какой диапазон value для каждого миниМассива (=  1 / _numMiniArrays = 0.1)
 		private var _allMiniVectors:Array;		//массив во всеми миниМассивами
 		
 		
@@ -129,7 +130,7 @@ package AS3.motionPath {
 			return v;
 		}
 		
-		// Предыдущий вариант метода. Так и не понял, какой из них быстрее...
+		// Предыдущий вариант метода. Который ищет вершину, пробегаясь по одному массиву.
 		
 		/*public function getValue(value:Number, cycle:Boolean=false, rotateInterpolation:Boolean=false):Vertex 
 		{
@@ -313,7 +314,7 @@ package AS3.motionPath {
 			_numVertexes = _vertexes.length;
 			_vertexes.fixed = true;
 			
-			
+			redrawPathData(1);
 			
 			//-------------------------------------------  
 			//проба оттимизации поиска вершин

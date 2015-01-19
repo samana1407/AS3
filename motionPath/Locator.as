@@ -66,8 +66,9 @@ package AS3.motionPath
 			if (path != null)
 			{
 				_path = path;
-				drawLocator();
 			}
+			
+			drawLocator();
 		}
 		
 		
