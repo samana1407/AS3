@@ -40,6 +40,17 @@ package  AS3
 			return min + Math.random() * (max - min);
 		}
 		
+		
+		/**
+		 * Получить случайный элемент из массива
+		 * @param	array массив со значениями
+		 * @return
+		 */
+		public static function randInArray(array:Array):* 
+		{
+			return array[int(Math.random() * array.length)];
+		}
+		
 		/**
 		 * Получить расстояние между объектами
 		 * @param	x1 икс первой точки
