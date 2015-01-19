@@ -50,12 +50,11 @@ package AS3.motionPath
 		 * @param	cycle цикличность передвижения
 		 * @param 	rotateInterpolation усерединять поворот между предыдущей и следующей вершиной, если локатор находится между ними
 		 */
-		public function Locator(path:MotionPath, cycle:Boolean = false, rotateInterpolation:Boolean = false )
+		public function Locator(path:MotionPath=null, cycle:Boolean = false, rotateInterpolation:Boolean = false )
 		{
 			_x = 0;
 			_y = 0;
 			_rotation = 0;
-			_path = path;
 			_uv = 0;
 			_value = 0;
 			
@@ -64,8 +63,11 @@ package AS3.motionPath
 			displayShape = new Shape();
 			this.rotateInterpolation = rotateInterpolation;
 			
-			updateTransform(_value);
-			drawLocator();
+			if (path != null)
+			{
+				_path = path;
+				drawLocator();
+			}
 		}
 		
 		
