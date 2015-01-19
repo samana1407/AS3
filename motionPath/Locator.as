@@ -39,6 +39,7 @@ package AS3.motionPath
 		private var _x:Number; //позиция по x
 		private var _y:Number; //позиция по y
 		private var _rotation:Number; //поворот в градусах
+		
 		private var _uv:Number; //положение в пикселях вдоль пути
 		private var _value:Number; //положение на пути 0-начало, 1-конец
 		private var _path:MotionPath; //ссылка на путь

@@ -19,7 +19,10 @@ package AS3.motionPath {
 		/**
 		 * Визуальное представление пути
 		 */
-		public var displayShape:Shape;		
+		public var displayShape:Shape;
+		
+		private var _x:Number;					//координата икс
+		private var _y:Number;					//координата игрек
 		
 		private var _vertexes:Vector.<Vertex>;	//массив с вершинами
 		private var _length:Number;				//длина пути в пикселях
@@ -39,11 +42,14 @@ package AS3.motionPath {
 		
 		public function MotionPath() 
 		{
+			displayShape = new Shape();
+			
+			_x = 0;
+			_y = 0;
 			_vertexes = new Vector.<Vertex>();
 			_length = 0;
 			_numVertexes = 0;
 			
-			displayShape = new Shape();
 			
 			//проба отпимизации поиска вершин
 			_numMiniArrays = 10;
@@ -78,11 +84,15 @@ package AS3.motionPath {
 			if (value==0) 
 			{
 				v.copyFrom(_vertexes[0]);
+				v.x += _x;
+				v.y += _y;
 				return v;
 			}
 			if (value==1) 
 			{
 				v.copyFrom(_vertexes[_vertexes.length - 1]);
+				v.x += _x;
+				v.y += _y;
 				return v;
 			}
 			
@@ -101,6 +111,8 @@ package AS3.motionPath {
 				if (baseV.value == value)
 				{
 					v.copyFrom(baseV);
+					v.x += _x;
+					v.y += _y;
 					return v;
 				}
 				
@@ -117,6 +129,8 @@ package AS3.motionPath {
 			
 			v.x += (nextV.x - v.x) * valueOffset;
 			v.y += (nextV.y - v.y) * valueOffset;
+			v.x += _x;
+			v.y += _y;
 			
 			if(rotateInterpolation) v.angNext += SMath.diffAngles(v.angNext, nextV.angNext, false) * valueOffset;
 			
@@ -130,83 +144,19 @@ package AS3.motionPath {
 			return v;
 		}
 		
-		// Предыдущий вариант метода. Который ищет вершину, пробегаясь по одному массиву.
-		
-		/*public function getValue(value:Number, cycle:Boolean=false, rotateInterpolation:Boolean=false):Vertex 
-		{
-			if (!cycle) 
-			{
-				if (value > 1) value = 1;
-				if (value < 0) value = 0;
-			}
-			else
-			{
-				if (value>0) value = value % 1;
-				if (value<0) value = 1-Math.abs(value % 1);
-			}
-			
-			var v:Vertex = new Vertex();
-			
-			if (value==0) 
-			{
-				v.copyFrom(_vertexes[0]);
-				return v;
-			}
-			if (value==1) 
-			{
-				v.copyFrom(_vertexes[_vertexes.length - 1]);
-				return v;
-			}
-			
-			
-			var baseV:Vertex;
-			//пробегаюсь по вершинам с предпоследней до первой и нахожу ту, у которой value меньше искомого value.
-			//другими словами нахожу между какими вершинами находится искомое value
-			for (var i:int = _numVertexes-2; i >= 0; i--) 
-			{
-				baseV = _vertexes[i];
-				if (baseV.value == value)
-				{
-					v.copyFrom(baseV);
-					return v;
-				}
-				
-				if (baseV.value < value) 
-				{
-					v.copyFrom(baseV);
-					break;
-				}
-			}
-			
-			var nextV:Vertex = _vertexes[i + 1];
-			
-			var valueOffset:Number = (value - v.value) / (nextV.value-v.value);
-			
-			v.x += (nextV.x - v.x) * valueOffset;
-			v.y += (nextV.y - v.y) * valueOffset;
-			
-			if(rotateInterpolation) v.angNext += SMath.diffAngles(v.angNext, nextV.angNext, false) * valueOffset;
-			
-			v.uv += (nextV.uv - v.uv) * valueOffset;
-			v.value = value;
-			
-			baseV = null;
-			nextV = null;
-			
-			return v;
-		}
-		*/
 		
 		/**
 		 * Данные о точке на пути, через длину пути.
 		 * Например получить точку, на 25-ом пикселе вдоль пути getValueUV(25)
 		 * @param	valueUV величина в пикселях
 		 * @param 	cycle если valueUV меньше 0 и больше длинны пути, то создаётся цикличность: из-конца в начало и наоборот.
+		 * @param	rotateInterpolation усерединять angNext(поворот) вершины, если она находится между базовых вершин.
+		 * Например если путь плавный, то лучше установить true, а если путь прямой и угловой, то - false.
 		 * @return
 		 */
-		public function getValueUV(valueUV:Number,cycle:Boolean=false):Vertex 
+		public function getValueUV(valueUV:Number,cycle:Boolean=false, rotateInterpolation:Boolean=false ):Vertex 
 		{
-			return getValue(valueUV/_length, cycle)
+			return getValue(valueUV/_length, cycle, rotateInterpolation)
 		}
 		
 		/**
@@ -366,6 +316,9 @@ package AS3.motionPath {
 			var normalLen:int = 10;
 			var vertexSize:int = 2;
 			
+			displayShape.x = _x;
+			displayShape.y = _y;
+			
 			var g:Graphics = displayShape.graphics;
 			g.clear();
 			
@@ -436,6 +389,40 @@ package AS3.motionPath {
 		public function get numVertexes():int 
 		{
 			return _numVertexes;
+		}
+		
+		/**
+		 * Позиция по икс
+		 */
+		public function get x():Number 
+		{
+			return _x;
+		}
+		
+		/**
+		 * Позиция по икс
+		 */
+		public function set x(value:Number):void 
+		{
+			_x = value;
+			displayShape.x = _x;
+		}
+		
+		/**
+		 * Позиция по игрек
+		 */
+		public function get y():Number 
+		{
+			return _y;
+		}
+		
+		/**
+		 * Позиция по игрек
+		 */
+		public function set y(value:Number):void 
+		{
+			_y = value;
+			displayShape.y = _y;
 		}
 		
 	}
