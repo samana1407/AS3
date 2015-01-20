@@ -66,6 +66,7 @@ package  AS3.motionPath
 			_keyUpCommands[67] = copyPontsToClipboard;	//C
 			
 			_keyUpCommands[76] = loadImage;				//L
+			_keyUpCommands[72] = toggleHelpWindow;		//H
 			
 			_baseLineSprite = new Sprite();
 			_smoothLineShape = new Shape();
@@ -87,6 +88,8 @@ package  AS3.motionPath
 			
 			addEventListener(Event.ADDED_TO_STAGE, addedToStage);
 		}
+		
+		
 		
 		
 		
@@ -415,6 +418,15 @@ package  AS3.motionPath
 			_fileRef.load();
 		}
 		
+		
+		//==============================================
+		//				TOGGLE HELP WINDOW
+		//==============================================
+		private function toggleHelpWindow():void 
+		{
+			_info.changeVisible();
+		}
+		
 		//==============================================
 		//				MOVE CANVAS
 		//==============================================
@@ -525,10 +537,12 @@ class Info extends Sprite
 	private var _numPoints:int;
 	private var _closePath:Boolean;
 	private var _smoothPass:int;
-	private var _pathLength:Number=0;
+	private var _pathLength:Number = 0;
+	private var _infoVisible:Boolean = true;
 	
 	private var _tf:TextField;
 	private var _tFormat:TextFormat;
+	
 	public function Info() 
 	{
 		mouseEnabled = false;
@@ -550,8 +564,21 @@ class Info extends Sprite
 		addChild(_tf);
 	}
 	
+	public function changeVisible():void 
+	{
+		_infoVisible = !_infoVisible;
+		updateText();
+	}
+	
+	
 	private function updateText():void 
 	{
+		if (_infoVisible==false) 
+		{
+			_tf.htmlText = "press <b>H</b> for help";
+			return;
+		}
+		
 		var s:String = "  *** <b><u>keyboard</u></b> ***\n";
 		s += "<b>ARROWS</b>: move canvas\n";
 		s += "<b>BACKSPACE</b>: remove sel.vertex \n";
@@ -559,7 +586,8 @@ class Info extends Sprite
 		s += "<b>MINUS</b> : unsmooth\n";
 		s += "<b>SPACE</b> : close/open path\n";
 		s += "<b>ENTER or C</b> : copy points to clipboard\n";
-		s += "<b>L</b> : load/unload image\n\n";
+		s += "<b>L</b> : load/unload image\n";
+		s += "<b>H</b> : show/hide help\n\n";
 		
 		//info
 		s += "      *** <b><u>info</u></b> ***";
