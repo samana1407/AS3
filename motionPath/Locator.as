@@ -92,7 +92,7 @@ package AS3.motionPath
 				cycleValue = false;
 			}
 			
-			var v:Vertex = _path.getValue(_value); //текущие данные на пути
+			var v:Vertex = _path._getValue(_value); //текущие данные на пути
 			var angToTarget:Number = SMath.angTo(v.x, v.y, targetX, targetY, false); //угол к цели
 			var offsetAng:Number = SMath.diffAngles(v.angNext, angToTarget, false); //разница угла к цели и угла к след.вершине на  пути
 			offsetAng = offsetAng < 0 ? offsetAng * -1 : offsetAng; //to abs
@@ -107,7 +107,7 @@ package AS3.motionPath
 			//двигаем локатор на 1 px в нужную сторону, пока есть куда двигаться
 			while (true)
 			{
-				v = _path.getValue(_value);
+				v = _path._getValue(_value);
 				dist = SMath.dist(v.x, v.y, targetX, targetY);
 				
 				if (dist > 5)
@@ -157,7 +157,7 @@ package AS3.motionPath
 		 */
 		private function updateTransform(val:Number):void
 		{
-			var v:Vertex = _path.getValue(val, cycleValue, rotateInterpolation);
+			var v:Vertex = _path._getValue(val, cycleValue, rotateInterpolation);
 			_x = v.x;
 			_y = v.y;
 			_uv = v.uv;

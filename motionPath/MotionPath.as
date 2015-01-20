@@ -39,6 +39,7 @@ package AS3.motionPath {
 		private var _valueMiniArray:Number;		//какой диапазон value для каждого миниМассива (=  1 / _numMiniArrays = 0.1)
 		private var _allMiniVectors:Array;		//массив во всеми миниМассивами
 		
+		private var _tempVertex:Vertex;			//вершина, которая возвращается приватными методами getValue и getValueUv для локатора.
 		
 		public function MotionPath() 
 		{
@@ -56,17 +57,33 @@ package AS3.motionPath {
 			_valueMiniArray = 1 / _numMiniArrays;
 			_allMiniVectors = [];
 			
+			_tempVertex = new Vertex();
+			
 		}
 		
 		/**
-		 * Данные о точке на пути. Возвращает вершину со всеми парраметрами.
+		 * Данные о точке на пути. Возвращает клон вершины со всеми парраметрами.
 		 * @param	value 0 - начало пути, 1 - конец пути
 		 * @param 	cycle если value выходит из диапазона 0-1, то создаётся цикличность: из-конца в начало и наоборот.
 		 * @param	rotateInterpolation усерединять angNext(поворот) вершины, если она находится между базовых вершин.
 		 * Например если путь плавный, то лучше установить true, а если путь прямой и угловой, то - false.
 		 * @return
 		 */
-		public function getValue(value:Number, cycle:Boolean=false, rotateInterpolation:Boolean=false):Vertex 
+		public function getValue(value:Number, cycle:Boolean=false, rotateInterpolation:Boolean=false):Vertex
+		{
+			return new Vertex().copyFrom( _getValue(value, cycle, rotateInterpolation) );
+		}
+		
+		/**Приватный метод используется локаторами.
+		 * В отличии от публичного метода, постоянно перезаписывает и возвращает приватную переменную _tempVertex,
+		 * таким образом постоянные запросы от локаторов, не создают лишних локальных Vertex в этом методе.
+		 * Другими словами, избавляемся от периодического создания экземпляров Vertex.
+		 * @param	value
+		 * @param	cycle
+		 * @param	rotateInterpolation
+		 * @return 	Возвращает приватную переменную _tempVetex
+		 */
+		internal function _getValue(value:Number, cycle:Boolean=false, rotateInterpolation:Boolean=false):Vertex 
 		{
 			if (!cycle) 
 			{
@@ -79,21 +96,20 @@ package AS3.motionPath {
 				if (value<0) value = 1-Math.abs(value % 1);
 			}
 			
-			var v:Vertex = new Vertex();
 			
 			if (value==0) 
 			{
-				v.copyFrom(_vertexes[0]);
-				v.x += _x;
-				v.y += _y;
-				return v;
+				_tempVertex.copyFrom(_vertexes[0]);
+				_tempVertex.x += _x;
+				_tempVertex.y += _y;
+				return _tempVertex;
 			}
 			if (value==1) 
 			{
-				v.copyFrom(_vertexes[_vertexes.length - 1]);
-				v.x += _x;
-				v.y += _y;
-				return v;
+				_tempVertex.copyFrom(_vertexes[_vertexes.length - 1]);
+				_tempVertex.x += _x;
+				_tempVertex.y += _y;
+				return _tempVertex;
 			}
 			
 			//-------------------------
@@ -110,43 +126,43 @@ package AS3.motionPath {
 				baseV = miniVector[i];
 				if (baseV.value == value)
 				{
-					v.copyFrom(baseV);
-					v.x += _x;
-					v.y += _y;
-					return v;
+					_tempVertex.copyFrom(baseV);
+					_tempVertex.x += _x;
+					_tempVertex.y += _y;
+					return _tempVertex;
 				}
 				
 				if (baseV.value < value) 
 				{
-					v.copyFrom(baseV);
+					_tempVertex.copyFrom(baseV);
 					break;
 				}
 			}
 			
 			var nextV:Vertex = _vertexes[baseV.id + 1];
 			
-			var valueOffset:Number = (value - v.value) / (nextV.value-v.value);
+			var valueOffset:Number = (value - _tempVertex.value) / (nextV.value-_tempVertex.value);
 			
-			v.x += (nextV.x - v.x) * valueOffset;
-			v.y += (nextV.y - v.y) * valueOffset;
-			v.x += _x;
-			v.y += _y;
+			_tempVertex.x += (nextV.x - _tempVertex.x) * valueOffset;
+			_tempVertex.y += (nextV.y - _tempVertex.y) * valueOffset;
+			_tempVertex.x += _x;
+			_tempVertex.y += _y;
 			
-			if(rotateInterpolation) v.angNext += SMath.diffAngles(v.angNext, nextV.angNext, false) * valueOffset;
+			if(rotateInterpolation) _tempVertex.angNext += SMath.diffAngles(_tempVertex.angNext, nextV.angNext, false) * valueOffset;
 			
-			v.uv += (nextV.uv - v.uv) * valueOffset;
-			v.value = value;
+			_tempVertex.uv += (nextV.uv - _tempVertex.uv) * valueOffset;
+			_tempVertex.value = value;
 			
 			baseV = null;
 			nextV = null;
 			miniVector = null;
 			
-			return v;
+			return _tempVertex;
 		}
 		
 		
 		/**
-		 * Данные о точке на пути, через длину пути.
+		 * Данные о точке на пути, через длину пути. Возвращает клон вершины.
 		 * Например получить точку, на 25-ом пикселе вдоль пути getValueUV(25)
 		 * @param	valueUV величина в пикселях
 		 * @param 	cycle если valueUV меньше 0 и больше длинны пути, то создаётся цикличность: из-конца в начало и наоборот.
@@ -156,8 +172,9 @@ package AS3.motionPath {
 		 */
 		public function getValueUV(valueUV:Number,cycle:Boolean=false, rotateInterpolation:Boolean=false ):Vertex 
 		{
-			return getValue(valueUV/_length, cycle, rotateInterpolation)
+			return getValue(valueUV / _length, cycle, rotateInterpolation);
 		}
+		
 		
 		/**
 		 * Создать путь из точек.
