@@ -1,7 +1,7 @@
 package AS3.motionPath
 {
 	import AS3.SMath;
-	import flash.display.Shape;
+	import flash.display.Sprite;
 	
 	/**
 	 * ...
@@ -12,7 +12,7 @@ package AS3.motionPath
 	 * value - относительно, (locator.value=0.5 переместить локатор на половину пути)
 	 * Чтобы увидеть локатор, нужно добавить в дисплейЛист displayShape
 	 */
-	public class Locator
+	public class Locator extends Sprite
 	{
 		/**
 		 * Поворот локатора относительно пути
@@ -20,7 +20,7 @@ package AS3.motionPath
 		public var orientToPath:Boolean;
 		
 		/**
-		 * Цикличность передвиженя вдоль пути.
+		 * Цикличность передвиженя вдоль пути, при изменении свойств value или uv.
 		 * Если выходит за пределы, то появлятся с обратной строны.
 		 */
 		public var cycleValue:Boolean;
@@ -30,15 +30,6 @@ package AS3.motionPath
 		 */
 		public var rotateInterpolation:Boolean;
 		
-		/**
-		 * Шейп, для визуального представления локатора.
-		 */
-		public var displayShape:Shape;
-		
-		
-		private var _x:Number; //позиция по x
-		private var _y:Number; //позиция по y
-		private var _rotation:Number; //поворот в градусах
 		
 		private var _uv:Number; //положение в пикселях вдоль пути
 		private var _value:Number; //положение на пути 0-начало, 1-конец
@@ -53,44 +44,38 @@ package AS3.motionPath
 		 */
 		public function Locator(path:MotionPath=null, cycle:Boolean = false, rotateInterpolation:Boolean = false )
 		{
-			_x = 0;
-			_y = 0;
-			_rotation = 0;
 			_uv = 0;
 			_value = 0;
 			
 			cycleValue = cycle;
 			orientToPath = true;
-			displayShape = new Shape();
 			this.rotateInterpolation = rotateInterpolation;
 			
 			if (path != null)
 			{
-				_path = path;
+				this.path = path;
 			}
 			
-			drawLocator();
 		}
 		
 		
 		/**
 		 * Имитация перетаскивание локатора по кривой.
-		 * На острых углах может наблюдаться тряска поворота.
+		 * На острых углах может наблюдаться тряска поворота, причина которой 
+		 * мне известна, но пока не нашел ей решение.
 		 *
 		 * @param	targetX
 		 * @param	targetY
-		 * @param	cycleWhenDrag блокировать цикличное движение во время перетаскивания, если оно было включено.
+		 * @param	cycleWhenDrag заменяет свойство cycleValue на время перетаскивания.
 		 * 
 		 */
 		public function dragTo(targetX:Number, targetY:Number, cycleWhenDrag:Boolean=false):void
 		{
-			//при перетаскивании блокируем цикличное передвиженое по пути, если оно включено.
-			var cycleBeenTrue:Boolean;
-			if (cycleWhenDrag==false && cycleValue==true) 
-			{
-				cycleBeenTrue = true;
-				cycleValue = false;
-			}
+			//запоминаем текущее значение цикличности локатора
+			//и заменяем на время перетаскивания
+			var cycleBeen:Boolean = cycleValue;
+			cycleValue = cycleWhenDrag;
+			
 			
 			var v:Vertex = _path._getValue(_value); //текущие данные на пути
 			var angToTarget:Number = SMath.angTo(v.x, v.y, targetX, targetY, false); //угол к цели
@@ -98,7 +83,8 @@ package AS3.motionPath
 			offsetAng = offsetAng < 0 ? offsetAng * -1 : offsetAng; //to abs
 			
 			//направление куда тянем, вперёд или назад по пути.
-			//это для того, чтобы цикл while не зависал на острых углах
+			//это для того, чтобы цикл while не зависал на острых углах,
+			//не понимая в какую сторону двигаться.
 			var forvard:Boolean = offsetAng < 90 ? true : false;
 			
 			//расстояние между целью и текущим положением на пути
@@ -147,8 +133,8 @@ package AS3.motionPath
 				break;
 			}
 			
-			//включить цикличное движение, если оно было выключено на время перетаскивания
-			if (cycleBeenTrue) cycleValue = true;
+			//установить цикличное движение, которое было до перетаскивания
+			cycleValue = cycleBeen;
 		}
 		
 		
@@ -158,47 +144,13 @@ package AS3.motionPath
 		private function updateTransform(val:Number):void
 		{
 			var v:Vertex = _path._getValue(val, cycleValue, rotateInterpolation);
-			_x = v.x;
-			_y = v.y;
+			x = v.x;
+			y = v.y;
+			if (orientToPath) rotation = v.angNext;
 			_uv = v.uv;
 			_value = v.value;
-			if (orientToPath) _rotation = v.angNext;
-			
-			//обновить визуальный шейп
-			displayShape.x = _x;
-			displayShape.y = _y;
-			displayShape.rotation = _rotation;
 			
 			v = null;
-		}
-		
-		
-		/**
-		 * Нарисовать локатор в виде креста
-		 */
-		private function drawLocator():void
-		{
-			var w:Number = 1;
-			var len:int = 20;
-			with (displayShape.graphics)
-			{
-				//верх синий
-				lineStyle(w, 0x48A4FF);
-				moveTo(0, 0);
-				lineTo(0, -len);
-				//низ коричневый
-				lineStyle(w, 0x800000);
-				moveTo(0, 0);
-				lineTo(0, len);
-				//левая сторона серая
-				lineStyle(w, 0x909090);
-				moveTo(0, 0);
-				lineTo(-len, 0);
-				//правая сторона зелёная
-				lineStyle(w, 0x47FC03);
-				moveTo(0, 0);
-				lineTo(len, 0);
-			}
 		}
 		
 		
@@ -248,23 +200,8 @@ package AS3.motionPath
 		
 		
 		//==============================================
-		//					GETTERS other
+		//					GETTERS SETTERS other
 		//==============================================
-		public function get x():Number
-		{
-			return _x
-		}
-		
-		public function get y():Number
-		{
-			return _y;
-		}
-		
-		public function get rotation():Number
-		{
-			return _rotation;
-		}
-		
 		
 		public function get path():MotionPath 
 		{
