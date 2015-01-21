@@ -10,7 +10,7 @@ package AS3.motionPath
 	 * Перемещение с помощью:
 	 * uv - в пикселях, (locator.uv+=5 переместить локатор на 5 пикселей вперёд вдоль пути)
 	 * value - относительно, (locator.value=0.5 переместить локатор на половину пути)
-	 * Чтобы увидеть локатор, нужно добавить в дисплейЛист displayShape
+	 * 
 	 */
 	public class Locator extends Sprite
 	{
@@ -61,16 +61,14 @@ package AS3.motionPath
 		
 		/**
 		 * Имитация перетаскивание локатора по кривой. Возвращает uv скорость перетаскивания. 
-		 * На острых углах может наблюдаться тряска поворота, причина которой 
+		 * На острых углах может наблюдаться тряска, причина которой 
 		 * мне известна, но пока не нашел ей решение.
-		 * 
-		 *
 		 * @param	targetX
 		 * @param	targetY
 		 * @param 	slow Плавность перетаскивания 1 - мгновенное 0 - нет перетаскивания.
 		 * @return	Скорость перетаскивания.
 		 */
-		public function dragTo(targetX:Number, targetY:Number, slow:Number=1):Number
+		public function dragTo(targetX:Number, targetY:Number, slow:Number=0.4):Number
 		{
 			//корректируем значение плавности
 			slow = slow > 1 ? 1 : slow;
@@ -150,26 +148,26 @@ package AS3.motionPath
 			//вычисляем относительное смещение
 			offsetUV = (uv - oldUV);
 			
-			//создаём плавноть перетаскивания, если она была задана
-			if (slow < 1) 
+			//ищем кратчайшее направление если путь замкнут, чтобы не обходить весь путь, когда двигаемся например от 5 до конца пути.
+			if (_path.isClosed) 
 			{
 				if (offsetUV > _path.length * 0.5) offsetUV -= _path.length;
 				if (offsetUV < -_path.length * 0.5) offsetUV += _path.length;
-				
-				offsetUV *= slow;
-				uv = oldUV+offsetUV;
 			}
+			
+			offsetUV *= slow;
+			uv = oldUV+offsetUV;
+			
 			
 			//установить цикличное движение, которое было до перетаскивания
 			cycleValue = cycleBeen;
-			
 			
 			return offsetUV;
 		}
 		
 		
 		/**
-		 * Обновить трансформацию локатора и визуального шейпа
+		 * Обновить трансформацию локатора
 		 */
 		private function updateTransform(val:Number):void
 		{

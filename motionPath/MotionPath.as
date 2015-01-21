@@ -12,7 +12,7 @@ package AS3.motionPath {
 		 * Передать массив точек для составление пути через метод initPath.
 		 * Чтобы визуализировать путь, нужно добавить в дисплейЛист displayShape и вызвать метод showPathData, но в этом нет необходимости.
 		 * Получать положение и поворот точки на пути с помощью getValue, где 0 - начало, 1-конец пути.
-		 * Так же удобно использовать в связке с Locator-ом, который привязывается к пути и имеет удобные методы для управления.
+		 * Удобно использовать в связке с Locator-ом, который привязывается к пути и имеет удобные методы для управления перемещения по нему.
 	 */
 	public class MotionPath
 	{
@@ -41,7 +41,7 @@ package AS3.motionPath {
 		private var _valueMiniArray:Number;		//какой диапазон value для каждого миниМассива (=  1 / _numMiniArrays = 0.1)
 		private var _allMiniVectors:Array;		//массив во всеми миниМассивами
 		
-		private var _tempVertex:Vertex;			//вершина, которая возвращается приватными методами getValue и getValueUv для локатора.
+		private var _tempVertex:Vertex;			//вершина, которая возвращается приватными методами _getValue и _getValueUv для локатора.
 		
 		public function MotionPath() 
 		{
@@ -105,6 +105,7 @@ package AS3.motionPath {
 				_tempVertex.copyFrom(_vertexes[0]);
 				_tempVertex.x += _x;
 				_tempVertex.y += _y;
+				_tempVertex.uv = Number(_tempVertex.uv.toFixed(2));
 				return _tempVertex;
 			}
 			if (value==1) 
@@ -112,6 +113,7 @@ package AS3.motionPath {
 				_tempVertex.copyFrom(_vertexes[_vertexes.length - 1]);
 				_tempVertex.x += _x;
 				_tempVertex.y += _y;
+				_tempVertex.uv = Number(_tempVertex.uv.toFixed(2));
 				return _tempVertex;
 			}
 			
@@ -132,6 +134,7 @@ package AS3.motionPath {
 					_tempVertex.copyFrom(baseV);
 					_tempVertex.x += _x;
 					_tempVertex.y += _y;
+					_tempVertex.uv = Number(_tempVertex.uv.toFixed(2));
 					return _tempVertex;
 				}
 				
@@ -154,6 +157,7 @@ package AS3.motionPath {
 			if(rotateInterpolation) _tempVertex.angNext += SMath.diffAngles(_tempVertex.angNext, nextV.angNext, false) * valueOffset;
 			
 			_tempVertex.uv += (nextV.uv - _tempVertex.uv) * valueOffset;
+			_tempVertex.uv = Number(_tempVertex.uv.toFixed(2));
 			_tempVertex.value = value;
 			
 			baseV = null;
