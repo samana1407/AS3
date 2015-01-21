@@ -268,7 +268,7 @@ package  AS3.motionPath
 			//если путь нужно замкнуть, то создать в конце ещё одну точку, такую же, как и первую
 			if (_closePath && _smoothLinePoints.length>1) 
 			{
-				_smoothLinePoints.push(new Point(_smoothLinePoints[0].x,_smoothLinePoints[0].y));
+				_smoothLinePoints.push(new Point(_smoothLinePoints[0].x, _smoothLinePoints[0].y));
 			}
 			
 			return _smoothLinePoints;
@@ -418,6 +418,7 @@ package  AS3.motionPath
 		{
 			_closePath = !_closePath;
 			
+			drawBaseLine();
 			updateSmoothLine();
 			drawSmoothLine();
 			
@@ -496,6 +497,9 @@ package  AS3.motionPath
 			
 			while (_baseVertexSprite.numChildren) _baseVertexSprite.removeChildAt(0);
 			while (_edgeSprite.numChildren) _edgeSprite.removeChildAt(0);
+			
+			_info.numPoints = 0;
+			_info.pathLength = 0;
 		}
 		
 		//==============================================
@@ -647,7 +651,7 @@ class Edge extends Sprite
 		graphics.moveTo(vertA.x, vertA.y);
 		graphics.lineTo(vertB.x, vertB.y);
 		
-		graphics.lineStyle(1, 0xD7D7D7);
+		graphics.lineStyle(1, 0xB5B5B5);
 		graphics.moveTo(vertA.x, vertA.y);
 		graphics.lineTo(vertB.x, vertB.y);
 	}
@@ -704,12 +708,13 @@ class Info extends Sprite
 		}
 		
 		var s:String = "  *** <b><u>keyboard</u></b> ***\n";
-		s += "<b>ARROWS</b>: move canvas\n";
+		s += "<b>CLICK</b>: add/move point\n";
 		s += "<b>BACKSPACE</b>: delete last/select vertex \n";
-		s += "<b>DELETE</b>: delete path \n";
 		s += "<b>PLUS</b> : smooth \n";
 		s += "<b>MINUS</b> : unsmooth\n";
+		s += "<b>DELETE</b>: delete path \n";
 		s += "<b>SPACE</b> : close/open path\n";
+		s += "<b>ARROWS</b>: move canvas\n";
 		s += "<b>ENTER or C</b> : copy points to clipboard\n";
 		s += "<b>L</b> : load/unload image\n";
 		s += "<b>H</b> : show/hide help\n\n";
