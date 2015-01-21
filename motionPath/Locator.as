@@ -60,21 +60,35 @@ package AS3.motionPath
 		
 		
 		/**
-		 * Имитация перетаскивание локатора по кривой.
+		 * Имитация перетаскивание локатора по кривой. Возвращает uv скорость перетаскивания. 
 		 * На острых углах может наблюдаться тряска поворота, причина которой 
 		 * мне известна, но пока не нашел ей решение.
+		 * 
 		 *
 		 * @param	targetX
 		 * @param	targetY
-		 * @param	cycleWhenDrag заменяет свойство cycleValue на время перетаскивания.
-		 * 
+		 * @param	cycleWhenDrag Заменяет свойство cycleValue на время перетаскивания.
+		 * @param 	slow Плавность перетаскивания 1 - мгновенное 0 - нет перетаскивания.
+		 * @return	Скорость перетаскивания.
 		 */
-		public function dragTo(targetX:Number, targetY:Number, cycleWhenDrag:Boolean=false):void
+		public function dragTo(targetX:Number, targetY:Number, cycleWhenDrag:Boolean=false, slow:Number=1):Number
 		{
+			//корректируем значение плавности
+			slow = slow > 1 ? 1 : slow;
+			if (slow <= 0) return 0;
+			
+			
 			//запоминаем текущее значение цикличности локатора
 			//и заменяем на время перетаскивания
 			var cycleBeen:Boolean = cycleValue;
 			cycleValue = cycleWhenDrag;
+			
+			
+			//запоминаем позицию до перетаскивания, которая понадобится если задана плавность.
+			var oldUV:Number = uv;
+			
+			//скорость перетаскивания
+			var offsetUV:Number = 0;
 			
 			
 			var v:Vertex = _path._getValue(_value); //текущие данные на пути
@@ -133,8 +147,25 @@ package AS3.motionPath
 				break;
 			}
 			
+			
+			//вычисляем относительное смещение
+			offsetUV = (uv - oldUV);
+			
+			//создаём плавноть перетаскивания, если она была задана
+			if (slow < 1) 
+			{
+				if (offsetUV > _path.length * 0.5) offsetUV -= _path.length;
+				if (offsetUV < -_path.length * 0.5) offsetUV += _path.length;
+				
+				offsetUV *= slow;
+				uv = oldUV+offsetUV;
+			}
+			
 			//установить цикличное движение, которое было до перетаскивания
 			cycleValue = cycleBeen;
+			
+			
+			return offsetUV;
 		}
 		
 		
