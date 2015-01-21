@@ -21,7 +21,7 @@ package AS3.motionPath
 		
 		/**
 		 * Цикличность передвиженя вдоль пути, при изменении свойств value или uv.
-		 * Если выходит за пределы, то появлятся с обратной строны.
+		 * Если выходит за пределы пути, то появлятся с обратной строны.
 		 */
 		public var cycleValue:Boolean;
 		
@@ -67,11 +67,10 @@ package AS3.motionPath
 		 *
 		 * @param	targetX
 		 * @param	targetY
-		 * @param	cycleWhenDrag Заменяет свойство cycleValue на время перетаскивания.
 		 * @param 	slow Плавность перетаскивания 1 - мгновенное 0 - нет перетаскивания.
 		 * @return	Скорость перетаскивания.
 		 */
-		public function dragTo(targetX:Number, targetY:Number, cycleWhenDrag:Boolean=false, slow:Number=1):Number
+		public function dragTo(targetX:Number, targetY:Number, slow:Number=1):Number
 		{
 			//корректируем значение плавности
 			slow = slow > 1 ? 1 : slow;
@@ -79,9 +78,9 @@ package AS3.motionPath
 			
 			
 			//запоминаем текущее значение цикличности локатора
-			//и заменяем на время перетаскивания
+			//и заменяем на время перетаскивания. Если путь не замкнутый, то цикличность отсутствует.
 			var cycleBeen:Boolean = cycleValue;
-			cycleValue = cycleWhenDrag;
+			cycleValue = _path.isClosed;
 			
 			
 			//запоминаем позицию до перетаскивания, которая понадобится если задана плавность.

@@ -24,6 +24,8 @@ package AS3.motionPath {
 		private var _x:Number;					//координата икс
 		private var _y:Number;					//координата игрек
 		
+		private var _isClosed:Boolean;
+		
 		private var _vertexes:Vector.<Vertex>;	//массив с вершинами
 		private var _length:Number;				//длина пути в пикселях
 		private var _numVertexes:int;			//кол-во вершин, составляющих путь
@@ -47,6 +49,7 @@ package AS3.motionPath {
 			
 			_x = 0;
 			_y = 0;
+			_isClosed = false;
 			_vertexes = new Vector.<Vertex>();
 			_length = 0;
 			_numVertexes = 0;
@@ -207,6 +210,8 @@ package AS3.motionPath {
 			_vertexes.length = 0;
 			_allMiniVectors.length = 0;
 			_numVertexes = 0;
+			
+			_isClosed = closePath;
 			
 			displayShape.graphics.clear();
 			
@@ -440,6 +445,14 @@ package AS3.motionPath {
 		{
 			_y = value;
 			displayShape.y = _y;
+		}
+		
+		/**
+		 * Является ли данный путь замкнутым.
+		 */
+		public function get isClosed():Boolean 
+		{
+			return _isClosed;
 		}
 		
 	}
