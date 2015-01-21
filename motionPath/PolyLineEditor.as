@@ -12,6 +12,8 @@ package  AS3.motionPath
 	import flash.net.FileFilter;
 	import flash.net.FileReference;
 	import flash.system.System;
+	import flash.text.TextField;
+	import flash.text.TextFormat;
 	
 	/**
 	 * ...
@@ -27,8 +29,11 @@ package  AS3.motionPath
 		private var _baseVertexes:Vector.<BaseVertex>;
 		private var _smoothLinePoints:Vector.<Point>;
 		
-		private var _baseLineSprite:Sprite;
+		private var _edgeSprite:Sprite;
+		private var _baseVertexSprite:Sprite;
 		private var _smoothLineShape:Shape;
+		
+		private var _tfCursor:TextField;
 		
 		private var _currentBaseVertexSelected:BaseVertex;
 		
@@ -67,9 +72,16 @@ package  AS3.motionPath
 			
 			_keyUpCommands[76] = loadImage;				//L
 			_keyUpCommands[72] = toggleHelpWindow;		//H
+			_keyUpCommands[46] = deletePath;		//delete
 			
-			_baseLineSprite = new Sprite();
+			_edgeSprite = new Sprite();
+			_baseVertexSprite = new Sprite();
 			_smoothLineShape = new Shape();
+			
+			_tfCursor = new TextField();
+			_tfCursor.selectable = false;
+			_tfCursor.mouseEnabled = false;
+			_tfCursor.defaultTextFormat = new TextFormat("Consolas", 11);
 			
 			_info = new Info();
 			
@@ -81,15 +93,15 @@ package  AS3.motionPath
 			_imageHolder.visible = false;
 			
 			addChild(_imageHolder);
-			addChild(_baseLineSprite);
+			addChild(_edgeSprite);
+			addChild(_baseVertexSprite);
 			addChild(_smoothLineShape);
 			addChild(_info);
+			addChild(_tfCursor);
 			
 			
 			addEventListener(Event.ADDED_TO_STAGE, addedToStage);
 		}
-		
-		
 		
 		
 		
@@ -100,6 +112,36 @@ package  AS3.motionPath
 			//-------------------------
 			stage.addEventListener(KeyboardEvent.KEY_UP, stage_keyUp);
 			stage.addEventListener(MouseEvent.MOUSE_DOWN, stage_mouseDown);
+			
+			addEventListener(MouseEvent.MOUSE_OVER, mouseOver);
+			addEventListener(MouseEvent.ROLL_OUT, mouseOut);
+			addEventListener(MouseEvent.MOUSE_MOVE, mouseOver);
+		}
+		
+		//==============================================
+		//				CURSOR MOUSE
+		//==============================================
+		private function mouseOver(e:MouseEvent):void 
+		{
+			// make cursor
+			_tfCursor.text = "";
+			_tfCursor.x = mouseX+15;
+			_tfCursor.y = mouseY+10;
+			
+			if (e.target is Edge) 
+			{
+				_tfCursor.text = "+";
+			}
+			
+			if (e.target is BaseVertex) 
+			{
+				_tfCursor.text = "move";
+			}
+		}
+		
+		private function mouseOut(e:MouseEvent):void 
+		{
+			_tfCursor.text = "";
 		}
 		
 		//==============================================
@@ -118,11 +160,23 @@ package  AS3.motionPath
 		private function stage_mouseDown(e:MouseEvent):void 
 		{
 			//  create new base vertex
-			if (e.target is Stage || e.target is PolyLineEditor) 
+			if (e.target is Stage || e.target is PolyLineEditor || e.target is Edge) 
 			{
 				var baseV:BaseVertex = new BaseVertex(mouseX, mouseY, baseVertexMoved);
-				_baseVertexes.push(baseV);
-				_baseLineSprite.addChild(baseV);
+				
+				//если мышь нажата на ребре, то добавляю вершину  в массив между вершин, образующих ребро.
+				//иначе просто добавляю вершину в конец массива
+				if (e.target is Edge) 
+				{
+					var edge:Edge = e.target as Edge;
+					_baseVertexes.splice(_baseVertexes.indexOf(edge.b), 0, baseV);
+				}
+				else
+				{
+					_baseVertexes.push(baseV);
+				}
+				
+				_baseVertexSprite.addChild(baseV);
 				
 				if (_currentBaseVertexSelected) _currentBaseVertexSelected.selectOff();
 				_currentBaseVertexSelected = baseV;
@@ -132,6 +186,8 @@ package  AS3.motionPath
 				
 				updateSmoothLine();
 				drawSmoothLine();
+				
+				baseV.fakeMouseDown();
 			}
 			
 			//select vertex
@@ -149,16 +205,15 @@ package  AS3.motionPath
 		//==============================================
 		private function drawBaseLine():void 
 		{
-			_baseLineSprite.graphics.clear();
 			
-			if (_baseVertexes.length < 2) return;
+			while (_edgeSprite.numChildren) _edgeSprite.removeChildAt(0);
 			
-			_baseLineSprite.graphics.lineStyle(1, 0xD7D7D7);
-			_baseLineSprite.graphics.moveTo(_baseVertexes[0].x, _baseVertexes[0].y)
-			for (var i:int = 1; i < _baseVertexes.length; i++) 
+			for (var i:int = 0; i < _baseVertexes.length-1; i++) 
 			{
-				_baseLineSprite.graphics.lineTo(_baseVertexes[i].x, _baseVertexes[i].y)
+				var edge:Edge = new Edge(_baseVertexes[i], _baseVertexes[i + 1]);
+				_edgeSprite.addChild(edge);
 			}
+			
 		}
 		
 		private function baseVertexMoved():void 
@@ -322,7 +377,7 @@ package  AS3.motionPath
 				_baseVertexes.splice(id, 1);
 				
 				//remove from displayList
-				_baseLineSprite.removeChild(_currentBaseVertexSelected);
+				_baseVertexSprite.removeChild(_currentBaseVertexSelected);
 				
 				//select on last baseVertex in array
 				if (_baseVertexes.length) 
@@ -428,6 +483,22 @@ package  AS3.motionPath
 		}
 		
 		//==============================================
+		//				DELETE PATH
+		//==============================================
+		private function deletePath():void 
+		{
+			_baseVertexes.length = 0;
+			_smoothLinePoints.length = 0;
+			
+			_currentBaseVertexSelected = null;
+			
+			_smoothLineShape.graphics.clear();
+			
+			while (_baseVertexSprite.numChildren) _baseVertexSprite.removeChildAt(0);
+			while (_edgeSprite.numChildren) _edgeSprite.removeChildAt(0);
+		}
+		
+		//==============================================
 		//				MOVE CANVAS
 		//==============================================
 		private function moveDownCanvas():void 
@@ -461,6 +532,7 @@ package  AS3.motionPath
 //==============================================
 //			private	class BASE VERTEX
 //==============================================
+import flash.display.Shape;
 import flash.display.Sprite;
 import flash.events.Event;
 import flash.events.MouseEvent;
@@ -472,20 +544,29 @@ class BaseVertex extends Sprite
 {
 	public var movedCB:Function;
 	
+	private var _movedHitArea:Shape;
+	
 	public function BaseVertex(posX:Number,posY:Number,movedCallback:Function) 
 	{
 		x = posX;
 		y = posY;
 		movedCB = movedCallback;
 		
-		buttonMode = true;
 		tabEnabled = false;
 		
+		
+		_movedHitArea = new Shape();
+		_movedHitArea.graphics.beginFill(0, 0);
+		_movedHitArea.graphics.drawRect( -50, -50, 100, 100);
+		_movedHitArea.graphics.endFill();
 		//draw vertex
 		selectOff();
 		
 		addEventListener(Event.ADDED_TO_STAGE, addedToStage);
+		addEventListener(Event.REMOVED_FROM_STAGE, removedFromStage);
 	}
+	
+	
 	
 	public function selectOn():void 
 	{
@@ -503,22 +584,38 @@ class BaseVertex extends Sprite
 		graphics.endFill();
 	}
 	
+	public function fakeMouseDown():void 
+	{
+		mouseDown();
+	}
+	
 	private function addedToStage(e:Event):void 
 	{
 		removeEventListener(Event.ADDED_TO_STAGE, addedToStage);
 		addEventListener(MouseEvent.MOUSE_DOWN, mouseDown);
 	}
 	
-	private function mouseDown(e:MouseEvent):void 
+	private function removedFromStage(e:Event):void 
+	{
+		removeEventListener(Event.REMOVED_FROM_STAGE, removedFromStage);
+		stage.removeEventListener(MouseEvent.MOUSE_MOVE, stage_mouseMove);
+		stage.removeEventListener(MouseEvent.MOUSE_UP, stage_mouseUp);
+	}
+	
+	private function mouseDown(e:MouseEvent=null):void 
 	{
 		stage.addEventListener(MouseEvent.MOUSE_MOVE, stage_mouseMove);
 		stage.addEventListener(MouseEvent.MOUSE_UP, stage_mouseUp);
+		
+		addChild(_movedHitArea);
 	}
 	
 	private function stage_mouseUp(e:MouseEvent):void 
 	{
 		stage.removeEventListener(MouseEvent.MOUSE_MOVE, stage_mouseMove);
 		stage.removeEventListener(MouseEvent.MOUSE_UP, stage_mouseUp);
+		
+		removeChild(_movedHitArea);
 	}
 	
 	private function stage_mouseMove(e:MouseEvent):void 
@@ -529,8 +626,35 @@ class BaseVertex extends Sprite
 	}
 }
 
+
 //==============================================
-//		private class INFO
+//				private class EDGE
+//==============================================
+
+class Edge extends Sprite 
+{
+	public var a:BaseVertex;
+	public var b:BaseVertex;
+	
+	public function Edge(vertA:BaseVertex, vertB:BaseVertex) 
+	{
+		tabEnabled = false;
+		
+		a = vertA;
+		b = vertB;
+		
+		graphics.lineStyle(5, 0xD7D7D7,0);
+		graphics.moveTo(vertA.x, vertA.y);
+		graphics.lineTo(vertB.x, vertB.y);
+		
+		graphics.lineStyle(1, 0xD7D7D7);
+		graphics.moveTo(vertA.x, vertA.y);
+		graphics.lineTo(vertB.x, vertB.y);
+	}
+}
+
+//==============================================
+//				private class INFO
 //==============================================
 class Info extends Sprite
 {
@@ -581,7 +705,8 @@ class Info extends Sprite
 		
 		var s:String = "  *** <b><u>keyboard</u></b> ***\n";
 		s += "<b>ARROWS</b>: move canvas\n";
-		s += "<b>BACKSPACE</b>: remove sel.vertex \n";
+		s += "<b>BACKSPACE</b>: delete last/select vertex \n";
+		s += "<b>DELETE</b>: delete path \n";
 		s += "<b>PLUS</b> : smooth \n";
 		s += "<b>MINUS</b> : unsmooth\n";
 		s += "<b>SPACE</b> : close/open path\n";
