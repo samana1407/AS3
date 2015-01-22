@@ -48,7 +48,7 @@ package AS3.motionPath
 			_value = 0;
 			
 			cycleValue = cycle;
-			orientToPath = true;
+			orientToPath = false;
 			this.rotateInterpolation = rotateInterpolation;
 			
 			if (path != null)
