@@ -203,7 +203,7 @@ package AS3.motionPath {
 			{
 				for (var j:int = 0; j < smoothPass; j++) 
 				{
-					points = PolyLineEditor.smoothingLine(points, closePath);
+					points = smoothingLine(points, closePath);
 				}
 			}
 			
@@ -325,6 +325,77 @@ package AS3.motionPath {
 				minValue = maxValue;
 				maxValue+= _valueMiniArray;
 			}
+			
+		}
+		
+		/**
+		 * Полигональное смягчение. Создаёт промежуточные точки и усрединяет между ними оригинальные. 
+		 * @param	points Вектор с набором точек, составляющих линию.
+		 * @param	closePath При замкнутой линии, этот флаг нужно установить в true, для корректрого смягчения.
+		 * Иначе на стыке начала и конца останется острый угол.
+		 * @return
+		 */
+		internal static function smoothingLine(points:Vector.<Point>, closePath:Boolean=false):Vector.<Point> 
+		{
+			//создаю базовый массив точек
+			var originClone:Vector.<Point> = new Vector.<Point>();
+			for (var k:int = 0; k < points.length; k++) 
+			{
+				originClone[k] = points[k].clone();
+			}
+			
+			
+			// нахожу промежуточные точки
+			var middlePoints:Vector.<Point> = new Vector.<Point>();
+			for (var i:int = 0; i < originClone.length; i++) 
+			{
+				if (i != originClone.length-1) 
+				{
+					var p1:Point = originClone[i];
+					var p2:Point = originClone[i + 1];
+					var middleP:Point = new Point(p1.x + ((p2.x - p1.x) / 2), p1.y + ((p2.y - p1.y) / 2));
+					middlePoints[i] = middleP;
+				}
+			}
+			
+			//двигаю базовые  точки для смягчения
+			for (var j:int = 0; j < middlePoints.length-1; j++) 
+			{
+				var m1:Point = middlePoints[j];
+				var m2:Point = middlePoints[j + 1];
+				var mHalf:Point = new Point(m1.x + ((m2.x - m1.x) * 0.5), m1.y + ((m2.y - m1.y) * 0.5));
+				
+				var orinigP:Point = originClone[j + 1];
+				
+				var offsetOriginP:Point = new Point(orinigP.x + ((mHalf.x - orinigP.x) * 0.5), orinigP.y + ((mHalf.y - orinigP.y) * 0.5));
+				
+				orinigP.x = offsetOriginP.x;
+				orinigP.y = offsetOriginP.y;
+			}
+			if (closePath) //смягчить первую базовую точку, а последнюю базовую точку сделать такую же как первую
+			{
+				m1 = middlePoints[middlePoints.length-1];
+				m2 = middlePoints[0];
+				mHalf = new Point(m1.x + ((m2.x - m1.x) * 0.5), m1.y + ((m2.y - m1.y) * 0.5));
+				
+				orinigP = originClone[0];
+				
+				offsetOriginP = new Point(orinigP.x + ((mHalf.x - orinigP.x) * 0.5), orinigP.y + ((mHalf.y - orinigP.y) * 0.5));
+				
+				orinigP.x = offsetOriginP.x;
+				orinigP.y = offsetOriginP.y;
+				
+				originClone[originClone.length - 1] = originClone[0].clone();
+			}
+			
+			//объединяю базовые (уже смягчённые) точки и промежуточные
+			for (var l:int = 0; l < originClone.length-1; l++) 
+			{
+				originClone.splice(l+1, 0, middlePoints.shift());
+				l++;
+			}
+			
+			return originClone;
 			
 		}
 		
