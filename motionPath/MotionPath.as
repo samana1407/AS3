@@ -95,6 +95,17 @@ package AS3.motionPath {
 			}
 			else
 			{
+				//если цикличность есть и value=1, то нельзя допустить
+				// value = value % 1, так как это вернёт 0, а нужно единицу.
+				if (value==1) 
+				{
+					_tempVertex.copyFrom(_vertexes[_vertexes.length - 1]);
+					_tempVertex.x += _x;
+					_tempVertex.y += _y;
+					_tempVertex.uv = Number(_tempVertex.uv.toFixed(2));
+					return _tempVertex;
+				}
+				
 				if (value>0) value = value % 1;
 				if (value<0) value = 1-Math.abs(value % 1);
 			}
@@ -116,6 +127,8 @@ package AS3.motionPath {
 				_tempVertex.uv = Number(_tempVertex.uv.toFixed(2));
 				return _tempVertex;
 			}
+			
+			
 			
 			//-------------------------
 			//нахожу тот мини вектор, который содержит вершины у которых рёбро входят в данныи диапозон вектора
@@ -205,6 +218,12 @@ package AS3.motionPath {
 				{
 					points = smoothingLine(points, closePath);
 				}
+			}
+			
+			//если путь должен быть цельным, то совмещаю последнюю точку с первой, вдруг они не равны.
+			if (closePath) 
+			{
+				points[points.length - 1] = points[0].clone();
 			}
 			
 			//обнулить данные
