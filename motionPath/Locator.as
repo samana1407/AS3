@@ -1,4 +1,4 @@
-package AS3.motionPath
+﻿package AS3.motionPath
 {
 	import AS3.SMath;
 	import flash.display.Sprite;
@@ -17,7 +17,7 @@ package AS3.motionPath
 		/**
 		 * Поворот локатора относительно пути
 		 */
-		public var orientToPath:Boolean;
+		private var _orientToPath:Boolean;
 		
 		/**
 		 * Цикличность передвиженя вдоль пути, при изменении свойств value или uv.
@@ -48,7 +48,7 @@ package AS3.motionPath
 			_value = 0;
 			
 			cycleValue = cycle;
-			orientToPath = false;
+			_orientToPath = false;
 			this.rotateInterpolation = rotateInterpolation;
 			
 			if (path != null)
@@ -88,60 +88,84 @@ package AS3.motionPath
 			var offsetUV:Number = 0;
 			
 			
-			var v:Vertex = _path._getValue(_value); //текущие данные на пути
-			var angToTarget:Number = SMath.angTo(v.x, v.y, targetX, targetY, false); //угол к цели
-			var offsetAng:Number = SMath.diffAngles(v.angNext, angToTarget, false); //разница угла к цели и угла к след.вершине на  пути
-			offsetAng = offsetAng < 0 ? offsetAng * -1 : offsetAng; //to abs
+			var angToTarget:Number = SMath.angTo(x, y, targetX, targetY, false); //угол к цели
 			
-			//направление куда тянем, вперёд или назад по пути.
-			//это для того, чтобы цикл while не зависал на острых углах,
-			//не понимая в какую сторону двигаться.
-			var forvard:Boolean = offsetAng < 90 ? true : false;
+			var nextV:Vertex = _path.getValueUV(uv + 1, cycleValue);
+			var prevV:Vertex = _path.getValueUV(uv - 1, cycleValue);
 			
-			//расстояние между целью и текущим положением на пути
-			var dist:Number;
+			var nextAng:Number = SMath.angTo(x, y, nextV.x, nextV.y, false);
+			var prevAng:Number = SMath.angTo(x, y, prevV.x, prevV.y, false);
+			
+			var nextAngDiff:Number = Math.abs(SMath.diffAngles(angToTarget, nextAng, false));
+			var prevAngDiff:Number = Math.abs(SMath.diffAngles(angToTarget, prevAng, false));
+			
+			
+			//тянем назад, но тупик
+			if (value == 0 && prevV.value == 0 && nextAngDiff > 80)
+			{
+				//trace("назад но тупик")
+				return 0;
+			}
+			
+			//тянем вперёд, но тупик
+			if (value == 1 && nextV.value == 1 && prevAngDiff > 80)
+			{
+				//trace("вперёд но тупик")
+				return 0;
+			}
+			
+			var forvard:Boolean = false;
+			//все условия, которые определяют, что тянуть можно только вперёд по пути:
+			//	1) 	если шаг назад, такой же как и текущее положение, то есть стоим в начале у незамкнутого пути
+			//		а угол к слешующему шагу близко к углу, куда тянем мышь
+			//
+			//  2)	или шагнуть назад можно, но
+			//	3)	угол к слешующему шагу меньше, чем угол к угол к шагу назад
+			//	4)	и угол к слещующему шагу близко к направлению мыши
+			//	5) 	и шагать вперёд вообще возможно
+			//
+			//  (                 1                  )    (       2       )    (			3			)	  (			4	   )	(		5	)
+			if (((prevV.uv == uv) && nextAngDiff < 80) || ((prevV.uv != uv) && (nextAngDiff < prevAngDiff) && (nextAngDiff < 80) && (nextV.uv!=uv)))
+			{
+				//trace("forvard true");
+				forvard = true;
+			}
+			
 			
 			//двигаем локатор на 1 px в нужную сторону, пока есть куда двигаться
+			var prevUV:Number;
+			
 			while (true)
 			{
-				v = _path._getValue(_value);
-				dist = SMath.dist(v.x, v.y, targetX, targetY);
+				prevUV = uv;
+				angToTarget = SMath.angTo(x, y, targetX, targetY, false); //угол к цели
 				
-				if (dist > 5)
+				if (forvard) 
 				{
-					angToTarget = SMath.angTo(v.x, v.y, targetX, targetY, false);
+					nextV = _path.getValueUV(uv + 1, cycleValue);
+					nextAng = SMath.angTo(x, y, nextV.x, nextV.y, false);
+					nextAngDiff = SMath.diffAngles(angToTarget, nextAng, false);
+					if(nextAngDiff < 0) nextAngDiff *=  -1;
 					
-					if (forvard)
-					{
-						offsetAng = SMath.diffAngles(v.angNext, angToTarget, false);
-						offsetAng = offsetAng < 0 ? offsetAng * -1 : offsetAng; //to abs
-						
-						// вперёд
-						if (offsetAng < 80 && v.value < 1)
-						{
-							uv += 1;
-							continue;
-						}
-						
-					}
-					else
-					{
-						//назад
-						offsetAng = SMath.diffAngles(v.angNext - 180, angToTarget, false);
-						offsetAng = offsetAng < 0 ? offsetAng * -1 : offsetAng; //to abs
-						
-						if (offsetAng < 80 && v.value > 0)
-						{
-							uv -= 1;
-							continue;
-						}
-					}
+					if (nextAngDiff < 80) uv++;
+					
 					
 				}
-				//когда угол от target к текущей точке на кривой станет перпендикулярным (+- 20 градусов),
-				//то цикл while завершается. 
+				else
+				{
+					prevV = _path.getValueUV(uv - 1, cycleValue);
+					prevAng = SMath.angTo(x, y, prevV.x, prevV.y, false);
+					prevAngDiff = SMath.diffAngles(angToTarget, prevAng, false);
+					if(prevAngDiff < 0) prevAngDiff *= -1;
+					
+					if (prevAngDiff < 80) uv--;
+					
+				}
 				
-				break;
+				//если смещения не произошло, например конец или начало пути, либо направление
+				//перетаскивания перпендикулярно пути, то останавливаем перетаскивание
+				if (prevUV==uv) break;
+				
 			}
 			
 			
@@ -174,7 +198,7 @@ package AS3.motionPath
 			var v:Vertex = _path._getValue(val, cycleValue, rotateInterpolation);
 			x = v.x;
 			y = v.y;
-			if (orientToPath) rotation = v.angNext;
+			if (_orientToPath) rotation = v.angNext;
 			_uv = v.uv;
 			_value = v.value;
 			
@@ -239,6 +263,17 @@ package AS3.motionPath
 		public function set path(value:MotionPath):void 
 		{
 			_path = value;
+			updateTransform(_value);
+		}
+		
+		public function get orientToPath():Boolean 
+		{
+			return _orientToPath;
+		}
+		
+		public function set orientToPath(value:Boolean):void 
+		{
+			_orientToPath = value;
 			updateTransform(_value);
 		}
 	
