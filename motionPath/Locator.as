@@ -61,8 +61,7 @@
 		
 		/**
 		 * Имитация перетаскивание локатора по кривой. Возвращает uv скорость перетаскивания. 
-		 * На острых углах может наблюдаться тряска, причина которой 
-		 * мне известна, но пока не нашел ей решение.
+		 * 
 		 * @param	targetX
 		 * @param	targetY
 		 * @param 	slow Плавность перетаскивания 1 - мгновенное 0 - нет перетаскивания.
@@ -95,6 +94,7 @@
 			var nextAng:Number = SMath.angTo(x, y, nextV.x, nextV.y, false);
 			var prevAng:Number = SMath.angTo(x, y, prevV.x, prevV.y, false);
 			
+			
 			var nextAngDiff:Number = Math.abs(SMath.diffAngles(angToTarget, nextAng, false));
 			var prevAngDiff:Number = Math.abs(SMath.diffAngles(angToTarget, prevAng, false));
 			
@@ -113,23 +113,23 @@
 				return 0;
 			}
 			
-			var forvard:Boolean = false;
-			//все условия, которые определяют, что тянуть можно только вперёд по пути:
-			//	1) 	если шаг назад, такой же как и текущее положение, то есть стоим в начале у незамкнутого пути
-			//		а угол к слешующему шагу близко к углу, куда тянем мышь
-			//
-			//  2)	или шагнуть назад можно, но
-			//	3)	угол к слешующему шагу меньше, чем угол к угол к шагу назад
-			//	4)	и угол к слещующему шагу близко к направлению мыши
-			//	5) 	и шагать вперёд вообще возможно
-			//
-			//  (                 1                  )    (       2       )    (			3			)	  (			4	   )	(		5	)
-			if (((prevV.uv == uv) && nextAngDiff < 80) || ((prevV.uv != uv) && (nextAngDiff < prevAngDiff) && (nextAngDiff < 80) && (nextV.uv!=uv)))
+			//находим направление, куда тянем локатор:
+			var forvard:Boolean;
+			//если шаг вперёд ближе к направлению чем шаг назад - будем идти вперёд 
+			if (nextAngDiff<80 && nextAngDiff < prevAngDiff) 
 			{
-				//trace("forvard true");
 				forvard = true;
 			}
-			
+			//если шаг назад ближе к направлению, чем шаг вперёд - будем идти назад
+			else if (prevAngDiff<80 && prevAngDiff < nextAngDiff) 
+			{
+				forvard = false;
+			}
+			//если шаг назад и шаг вперёд одинаковы и оба по направлению, то выбираем - идти вперёд
+			else if (nextAngDiff==prevAngDiff && (nextAngDiff<80 && prevAngDiff<80)) 
+			{
+				forvard = true;
+			}
 			
 			//двигаем локатор на 1 px в нужную сторону, пока есть куда двигаться
 			var prevUV:Number;
@@ -147,7 +147,7 @@
 					if(nextAngDiff < 0) nextAngDiff *=  -1;
 					
 					if (nextAngDiff < 80) uv++;
-					
+					//trace("next")
 					
 				}
 				else
@@ -158,6 +158,7 @@
 					if(prevAngDiff < 0) prevAngDiff *= -1;
 					
 					if (prevAngDiff < 80) uv--;
+					//trace("prev")
 					
 				}
 				
@@ -171,7 +172,7 @@
 			//вычисляем относительное смещение
 			offsetUV = (uv - oldUV);
 			
-			//ищем кратчайшее направление если путь замкнут, чтобы не обходить весь путь, когда двигаемся например от 5 до конца пути.
+			//ищем кратчайшее направление если путь замкнут, чтобы не обходить весь путь, когда двигаемся например от 5 до конца пути шагая назад
 			if (_path.isClosed) 
 			{
 				if (offsetUV > _path.length * 0.5) offsetUV -= _path.length;
