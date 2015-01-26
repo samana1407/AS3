@@ -80,7 +80,6 @@
 			var cycleBeen:Boolean = cycleValue;
 			cycleValue = _path.isClosed;
 			
-			
 			//запоминаем позицию до перетаскивания, которая понадобится если задана плавность.
 			var oldUV:Number = uv;
 			
