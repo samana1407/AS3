@@ -14,12 +14,12 @@
 	public class MainTimer
 	{
 		private var _timerShape:Shape;
-		private var _functions:Vector.<Function>;
+		private var _functions:Vector.<Function>;			//основной, меняющийся список функций
 		private var _len:int = 0;
 		private var _isOn:Boolean = false;
 		
-		private var _functionsFreeze:Vector.<Function>
-		
+		private var _functionsFreeze:Vector.<Function>;		//списом методов на данный кадр
+		private var _changed:Boolean = false;				//происходили подписки или отписки в основмном массиве
 		
 		public function MainTimer()
 		{
@@ -42,8 +42,9 @@
 		{
 			if (_functions.indexOf(f) == -1)
 			{
-				_functions.unshift(f);
+				_functions.push(f);
 				_len = _functions.length;
+				_changed = true;
 			}
 		}
 		
@@ -59,6 +60,7 @@
 			{
 				_functions.splice(ind, 1);
 				_len = _functions.length;
+				_changed = true;
 			}
 		}
 		
@@ -132,7 +134,11 @@
 		 */
 		private function timerShape_enterFrame(e:Event):void
 		{
-			_functionsFreeze = _functions.concat();
+			if (_changed) 
+			{
+				_functionsFreeze = _functions.concat();
+				_changed = false;
+			}
 			
 			var len:int = _len;
 			while (--len > -1)
