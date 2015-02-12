@@ -15,6 +15,7 @@ package AS3.LightEffect
 	/**
 	 * ...
 	 * @author Samana
+	 * @playerversion Flash 11.0
 	 */
 	public class Light extends Sprite 
 	{
@@ -139,6 +140,8 @@ package AS3.LightEffect
 			addChild(currentLightImage);
 			//добавляю растрировый свет на сцену
 			addChild(bm);
+			
+			mouseChildren = false;
 		}
 		
 		/**
@@ -240,6 +243,7 @@ package AS3.LightEffect
 							//нахожу точки, куда отброситься тень
 							aShadow.setTo (aLocal.x - Math.cos(aAngle) * shadowDistance, aLocal.y - Math.sin(aAngle) * shadowDistance);
 							bShadow.setTo (bLocal.x - Math.cos(bAngle) * shadowDistance, bLocal.y - Math.sin(bAngle) * shadowDistance);
+							
 							
 							//рисую по этим черытём точкам тень
 							with (holder.graphics) 

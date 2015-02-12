@@ -130,7 +130,7 @@ package AS3.soundManager
 			_position = 0;
 			
 			volumeFromObjectOff();
-			trace("stop")
+			//trace("stop")
 		}
 		
 		/**
