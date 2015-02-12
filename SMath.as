@@ -44,11 +44,14 @@ package  AS3
 		/**
 		 * Получить случайный элемент из массива
 		 * @param	array массив со значениями
+		 * @param	autoRemove удалить выбранный элемент из массива
 		 * @return
 		 */
-		public static function randInArray(array:Array):* 
+		public static function randInArray(array:Array, autoRemove:Boolean=false):* 
 		{
-			return array[int(Math.random() * array.length)];
+			var ind:int = (Math.random() * array.length);
+			if (autoRemove) return array.splice(ind, 1)[0];
+			return array[ind];
 		}
 		
 		/**
