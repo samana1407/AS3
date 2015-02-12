@@ -18,7 +18,7 @@
 		private var _len:int = 0;
 		private var _isOn:Boolean = false;
 		
-		
+		private var _functionsFreeze:Vector.<Function>
 		
 		
 		public function MainTimer()
@@ -26,6 +26,7 @@
 			_timerShape = new Shape();
 				
 			_functions = new Vector.<Function>();
+			_functionsFreeze = new Vector.<Function>();
 		}
 		
 		
@@ -41,7 +42,7 @@
 		{
 			if (_functions.indexOf(f) == -1)
 			{
-				_functions.push(f);
+				_functions.unshift(f);
 				_len = _functions.length;
 			}
 		}
@@ -53,10 +54,10 @@
 		 */
 		public function remove(f:Function):void
 		{
-			var id:int = _functions.indexOf(f);
-			if (id != -1)
+			var ind:int = _functions.indexOf(f);
+			if (ind != -1)
 			{
-				_functions.splice(id, 1);
+				_functions.splice(ind, 1);
 				_len = _functions.length;
 			}
 		}
@@ -131,12 +132,14 @@
 		 */
 		private function timerShape_enterFrame(e:Event):void
 		{
-			var len:int = _len - 1;
-			while (len != -1)
+			_functionsFreeze = _functions.concat();
+			
+			var len:int = _len;
+			while (--len > -1)
 			{
-				_functions[len--]();
+				_functionsFreeze[len]();
 			}
-		
+			
 		}
 		
 		
